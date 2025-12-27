@@ -52,10 +52,9 @@ def get_text(locale, key):
     else: lang = 'en-US'
     return I18N.get(lang, I18N['en-US'])[key]
 
-# --- 3. Jitsi 網址生成邏輯 (預設 192K) ---
+# --- 3. Jitsi 網址生成邏輯 ---
 def get_jitsi_url(room_name, is_stereo):
     encoded_name = urllib.parse.quote(room_name)
-    # 預設參數與網頁版同步
     config = (f"config.disableAP=true&config.disableAEC=true&config.disableNS=true&"
               f"config.disableAGC=true&config.stereo={'true' if is_stereo else 'false'}&"
               f"config.opusMaxAverageBitrate=192000&"
@@ -78,8 +77,8 @@ async def on_ready():
     print(f'✅ 機器人已上線：{client.user}')
 
 @client.tree.command(name="jitsi", description="Generate Jitsi music room links")
-@app_commands.describe(room_name="Enter room name")
-async def jitsi(interaction: discord.Interaction, room_name: str = None):
+@app_commands.describe(room_name="Enter the room name")
+async def jitsi(interaction: discord.Interaction, room_name: str): # 移除 = None，變回必填
     user_locale = interaction.locale
     embed = discord.Embed(
         title=get_text(user_locale, 'title'),
@@ -88,10 +87,9 @@ async def jitsi(interaction: discord.Interaction, room_name: str = None):
     )
     embed.set_footer(text=get_text(user_locale, 'footer'))
     
-    # 建立按鈕視圖
     view = ui.View()
     
-    # 1. 來了！ (192K Stereo)
+    # 1. 來了！
     view.add_item(ui.Button(
         label=get_text(user_locale, 'btn_join'),
         style=discord.ButtonStyle.primary,
@@ -99,7 +97,7 @@ async def jitsi(interaction: discord.Interaction, room_name: str = None):
         emoji="✊"
     ))
     
-    # 2. 單邊 (192K Mono)
+    # 2. 單邊
     view.add_item(ui.Button(
         label=get_text(user_locale, 'btn_mono'),
         style=discord.ButtonStyle.gray,
@@ -107,7 +105,7 @@ async def jitsi(interaction: discord.Interaction, room_name: str = None):
         emoji="♿"
     ))
     
-    # 3. 自訂 (外部連結)
+    # 3. 自訂
     view.add_item(ui.Button(
         label=get_text(user_locale, 'btn_custom'),
         style=discord.ButtonStyle.link,
