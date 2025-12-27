@@ -123,7 +123,22 @@ async def jitsi(interaction: discord.Interaction, room_name: str):
     )
 
 if __name__ == "__main__":
+    # 1. 先啟動 Flask
+    print(">>> 正在啟動 Flask 背景服務...")
     keep_alive()
+    
+    # 2. 檢查環境變數
     TOKEN = os.environ.get('BOT_TOKEN')
-    if TOKEN:
-        client.run(TOKEN)
+    
+    if not TOKEN:
+        print("❌ 錯誤：在 Render 環境變數中找不到 'BOT_TOKEN'！")
+        print("請檢查 Render Dashboard -> Environment -> Add Environment Variable")
+    else:
+        print(f"✅ 成功讀取 TOKEN (長度: {len(TOKEN)})，正在嘗試連線至 Discord...")
+        try:
+            # 3. 啟動機器人 (這行必須是最後一行，因為它會阻塞程式運行)
+            client.run(TOKEN)
+        except discord.errors.LoginFailure:
+            print("❌ 錯誤：Token 無效，請重新從 Discord Developer Portal 複製。")
+        except Exception as e:
+            print(f"❌ 啟動時發生未預期錯誤: {e}")
