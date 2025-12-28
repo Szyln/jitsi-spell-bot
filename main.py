@@ -17,31 +17,31 @@ def run_flask():
 def keep_alive():
     Thread(target=run_flask).start()
 
-# --- 2. 擴充翻譯對照表 ---
+# --- 2. 翻譯對照表 ---
 I18N = {
     'en-US': {
         'title': "Jitsi Music Room 🎤",
-        'desc': "Room: **{name}**\n\n⚠️ Use **Chrome/Edge** for best audio.",
+        'desc': "Room: **{name}**\nQuality: **{br}**\n\n⚠️ Use **Chrome/Edge** for best audio.",
         'btn_join': "Count me in!",
         'btn_chat': "Chat Only",
-        'btn_mono': "Where can I find my right side audio...",
-        'btn_custom': "Go to Web Version",
+        'btn_mono': "Mono Audio Fix",
         'footer': "Click the button to join",
         'pro_prompt': "Choose Audio Quality:",
+        'pro_done': "✅ Room link generated!",
         'q_low': "Survival Mode (96K)",
-        'q_mid': "Normal (192K)",
-        'q_high': "CD Quality (320K)",
-        'q_max': "Net Killer (512K)"
+        'q_mid': "Just curious about this (192K)",
+        'q_high': "CD Quality, no compromise (320K)",
+        'q_max': "Testing network limits (512K)"
     },
     'zh-TW': {
         'title': "要不要來唱歌 🎤",
-        'desc': "房間名稱：**{name}**\n\n⚠️ **提示**：為了確保音質，請使用 **Chrome** 或 **Edge** 瀏覽器開啟。",
+        'desc': "房間名稱：**{name}**\n音質：**{br}**\n\n⚠️ **提示**：為了確保音質，請使用 **Chrome** 或 **Edge** 瀏覽器開啟。",
         'btn_join': "來了！",
         'btn_chat': "尬聊",
         'btn_mono': "為什麼我聲音只有單邊",
-        'btn_custom': "網頁版產生器",
         'footer': "點擊下方按鈕直接進入房間",
-        'pro_prompt': "請選擇音質（此訊息僅您可見）：",
+        'pro_prompt': "請選擇音質：",
+        'pro_done': "✅ 房間連結已產生！",
         'q_low': "開窗都被嫌從頭卡到尾 (96K)",
         'q_mid': "我只是好奇這個指令是什麼 (192K)",
         'q_high': "CD音質，絕不妥協 (320K)",
@@ -49,13 +49,13 @@ I18N = {
     },
     'ja': {
         'title': "歌おうぜ！ 🎤",
-        'desc': "ルーム：**{name}**\n\n⚠️ **Chrome/Edge** 推奨",
+        'desc': "ルーム：**{name}**\n音質：**{br}**\n\n⚠️ **Chrome/Edge** 推奨",
         'btn_join': "よっしゃ！",
         'btn_chat': "雑談のみ",
         'btn_mono': "片耳しか聞こえない人用",
-        'btn_custom': "ウェブ版",
         'footer': "ボタンを押して入室",
         'pro_prompt': "音質を選んでください：",
+        'pro_done': "✅ ルームURLを作成しました！",
         'q_low': "低速回線用 (96K)",
         'q_mid': "標準設定 (192K)",
         'q_high': "ハイレゾ級 (320K)",
@@ -73,9 +73,7 @@ def get_text(locale, key):
 # --- 3. Jitsi 網址生成邏輯 ---
 def get_jitsi_url(room_name, mode, bitrate=192000):
     encoded_name = urllib.parse.quote(room_name)
-    # mode: 'stereo', 'mono', 'chat'
     is_stereo = "true" if mode in ['stereo', 'chat'] else "false"
-    # 尬聊模式開啟音訊處理 (disableAP=false)
     disable_ap = "false" if mode == 'chat' else "true"
     
     config = (f"config.disableAP={disable_ap}&config.disableAEC={disable_ap}&"
@@ -91,6 +89,12 @@ class ProQualitySelect(ui.View):
         super().__init__(timeout=60)
         self.room_name = room_name
         self.locale = locale
+        
+        # 動態設定按鈕標籤
+        self.btn_q_low.label = get_text(locale, 'q_low')
+        self.btn_q_mid.label = get_text(locale, 'q_mid')
+        self.btn_q_high.label = get_text(locale, 'q_high')
+        self.btn_q_max.label = get_text(locale, 'q_max')
 
     async def send_public_room(self, interaction: discord.Interaction, br, br_label):
         embed = discord.Embed(
@@ -102,28 +106,27 @@ class ProQualitySelect(ui.View):
         
         view = ui.View()
         view.add_item(ui.Button(label=get_text(self.locale, 'btn_join'), style=discord.ButtonStyle.primary, url=get_jitsi_url(self.room_name, 'stereo', br), emoji="✊"))
-        view.add_item(ui.Button(label=get_text(self.locale, 'btn_chat'), style=discord.ButtonStyle.success, url=get_jitsi_url(self.room_name, 'chat', br), emoji="💬"))
+        view.add_item(ui.Button(label=get_text(self.locale, 'btn_chat'), style=discord.ButtonStyle.success, url=get_jitsi_url(self.room_name, 'chat', br), emoji="📢"))
         view.add_item(ui.Button(label=get_text(self.locale, 'btn_mono'), style=discord.ButtonStyle.gray, url=get_jitsi_url(self.room_name, 'mono', br), emoji="♿"))
-        view.add_item(ui.Button(label=get_text(self.locale, 'btn_custom'), style=discord.ButtonStyle.link, url="https://szyln.github.io/jitsi-for-music-url-generator/", emoji="⚙️"))
         
-        # 刪除暫時的 Ephemeral 訊息並發送公開訊息
-        await interaction.response.edit_message(content="✅ Room link sent!", view=None)
+        # 更新 ephemeral 訊息的文字並發送公開連結
+        await interaction.response.edit_message(content=get_text(self.locale, 'pro_done'), view=None)
         await interaction.channel.send(embed=embed, view=view)
 
-    @ui.button(label="96K", style=discord.ButtonStyle.secondary)
-    async def q_low(self, interaction: discord.Interaction, button: ui.Button):
+    @ui.button(style=discord.ButtonStyle.secondary)
+    async def btn_q_low(self, interaction: discord.Interaction, button: ui.Button):
         await self.send_public_room(interaction, 96000, get_text(self.locale, 'q_low'))
 
-    @ui.button(label="192K", style=discord.ButtonStyle.secondary)
-    async def q_mid(self, interaction: discord.Interaction, button: ui.Button):
+    @ui.button(style=discord.ButtonStyle.secondary)
+    async def btn_q_mid(self, interaction: discord.Interaction, button: ui.Button):
         await self.send_public_room(interaction, 192000, get_text(self.locale, 'q_mid'))
 
-    @ui.button(label="320K", style=discord.ButtonStyle.secondary)
-    async def q_high(self, interaction: discord.Interaction, button: ui.Button):
+    @ui.button(style=discord.ButtonStyle.secondary)
+    async def btn_q_high(self, interaction: discord.Interaction, button: ui.Button):
         await self.send_public_room(interaction, 320000, get_text(self.locale, 'q_high'))
 
-    @ui.button(label="512K", style=discord.ButtonStyle.danger)
-    async def q_max(self, interaction: discord.Interaction, button: ui.Button):
+    @ui.button(style=discord.ButtonStyle.danger)
+    async def btn_q_max(self, interaction: discord.Interaction, button: ui.Button):
         await self.send_public_room(interaction, 512000, get_text(self.locale, 'q_max'))
 
 # --- 5. 機器人主體 ---
@@ -145,14 +148,13 @@ async def jitsi(interaction: discord.Interaction, room_name: str):
     )
     view = ui.View()
     view.add_item(ui.Button(label=get_text(user_locale, 'btn_join'), style=discord.ButtonStyle.primary, url=get_jitsi_url(room_name, 'stereo'), emoji="✊"))
-    view.add_item(ui.Button(label=get_text(user_locale, 'btn_chat'), style=discord.ButtonStyle.success, url=get_jitsi_url(room_name, 'chat'), emoji="💬"))
+    view.add_item(ui.Button(label=get_text(user_locale, 'btn_chat'), style=discord.ButtonStyle.success, url=get_jitsi_url(room_name, 'chat'), emoji="📢"))
     view.add_item(ui.Button(label=get_text(user_locale, 'btn_mono'), style=discord.ButtonStyle.gray, url=get_jitsi_url(room_name, 'mono'), emoji="♿"))
     await interaction.response.send_message(embed=embed, view=view)
 
 @client.tree.command(name="jitsi_pro", description="Generate a room with custom quality")
 async def jitsi_pro(interaction: discord.Interaction, room_name: str):
     user_locale = interaction.locale
-    # 使用 ephemeral=True 讓選單只有指令者看得到
     await interaction.response.send_message(
         content=f"**{room_name}** - {get_text(user_locale, 'pro_prompt')}",
         view=ProQualitySelect(room_name, user_locale),
