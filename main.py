@@ -42,7 +42,7 @@ I18N = {
         'footer': "點擊下方按鈕直接進入房間",
         'pro_prompt': "請選擇音質：",
         'pro_done': "✅ 房間連結已產生！",
-        'q_low': "開窗都被嫌從頭卡到尾 (96K)",
+        'q_low': "只求連上，不求音質 (96K)",
         'q_mid': "我只是好奇這個指令是什麼 (192K)",
         'q_high': "CD音質，絕不妥協 (320K)",
         'q_max': "挑戰網速極限 (512K)"
@@ -90,7 +90,7 @@ class ProQualitySelect(ui.View):
         self.room_name = room_name
         self.locale = locale
         
-        # 動態設定按鈕標籤
+        # 本人看到的選單按鈕顯示完整趣味說明
         self.btn_q_low.label = get_text(locale, 'q_low')
         self.btn_q_mid.label = get_text(locale, 'q_mid')
         self.btn_q_high.label = get_text(locale, 'q_high')
@@ -99,6 +99,7 @@ class ProQualitySelect(ui.View):
     async def send_public_room(self, interaction: discord.Interaction, br, br_label):
         embed = discord.Embed(
             title=get_text(self.locale, 'title'),
+            # 此處的 br 使用簡潔的標籤 (例如 "96K")
             description=get_text(self.locale, 'desc').format(name=self.room_name, br=br_label),
             color=0x4687ed
         )
@@ -109,25 +110,25 @@ class ProQualitySelect(ui.View):
         view.add_item(ui.Button(label=get_text(self.locale, 'btn_chat'), style=discord.ButtonStyle.success, url=get_jitsi_url(self.room_name, 'chat', br), emoji="📢"))
         view.add_item(ui.Button(label=get_text(self.locale, 'btn_mono'), style=discord.ButtonStyle.gray, url=get_jitsi_url(self.room_name, 'mono', br), emoji="♿"))
         
-        # 更新 ephemeral 訊息的文字並發送公開連結
         await interaction.response.edit_message(content=get_text(self.locale, 'pro_done'), view=None)
         await interaction.channel.send(embed=embed, view=view)
 
     @ui.button(style=discord.ButtonStyle.secondary)
     async def btn_q_low(self, interaction: discord.Interaction, button: ui.Button):
-        await self.send_public_room(interaction, 96000, get_text(self.locale, 'q_low'))
+        # 公開訊息顯示簡潔標籤
+        await self.send_public_room(interaction, 96000, "96K")
 
     @ui.button(style=discord.ButtonStyle.secondary)
     async def btn_q_mid(self, interaction: discord.Interaction, button: ui.Button):
-        await self.send_public_room(interaction, 192000, get_text(self.locale, 'q_mid'))
+        await self.send_public_room(interaction, 192000, "192K")
 
     @ui.button(style=discord.ButtonStyle.secondary)
     async def btn_q_high(self, interaction: discord.Interaction, button: ui.Button):
-        await self.send_public_room(interaction, 320000, get_text(self.locale, 'q_high'))
+        await self.send_public_room(interaction, 320000, "320K")
 
     @ui.button(style=discord.ButtonStyle.danger)
     async def btn_q_max(self, interaction: discord.Interaction, button: ui.Button):
-        await self.send_public_room(interaction, 512000, get_text(self.locale, 'q_max'))
+        await self.send_public_room(interaction, 512000, "512K")
 
 # --- 5. 機器人主體 ---
 class MyBot(discord.Client):
